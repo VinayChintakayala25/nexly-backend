@@ -1,3 +1,4 @@
+
 package com.nexly.backend.config;
 
 import com.nexly.backend.entity.User;
@@ -9,13 +10,10 @@ import org.springframework.context.annotation.Configuration;
 
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -30,9 +28,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    public SecurityConfig(
-            JwtAuthenticationFilter jwtAuthenticationFilter) {
-
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
@@ -42,18 +38,11 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(
-            UserRepository userRepository) {
-
+    public UserDetailsService userDetailsService(UserRepository userRepository) {
         return username -> {
-
-            User user = userRepository
-                    .findByEmail(username)
+            User user = userRepository.findByEmail(username)
                     .orElseThrow(() ->
-                            new UsernameNotFoundException(
-                                    "User not found"
-                            )
-                    );
+                            new UsernameNotFoundException("User not found"));
 
             return org.springframework.security.core.userdetails.User
                     .withUsername(user.getEmail())
@@ -64,37 +53,28 @@ public class SecurityConfig {
         };
     }
 
-    // ==============================
-    // CORS CONFIGURATION
-    // ==============================
-
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
 
-        CorsConfiguration configuration =
-                new CorsConfiguration();
-
+        // Allow local development, the production site, and its Vercel previews.
         configuration.setAllowedOrigins(
-                List.of("http://localhost:5173")
+                List.of(
+                        "http://localhost:5173",
+                        "https://nexlyfrontend.vercel.app"
+                )
+        );
+
+        configuration.setAllowedOriginPatterns(
+                List.of("https://nexlyfrontend-*.vercel.app")
         );
 
         configuration.setAllowedMethods(
-                List.of(
-                        "GET",
-                        "POST",
-                        "PUT",
-                        "DELETE",
-                        "PATCH",
-                        "OPTIONS"
-                )
+                List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         );
 
         configuration.setAllowedHeaders(
-                List.of(
-                        "Authorization",
-                        "Content-Type",
-                        "Accept"
-                )
+                List.of("Authorization", "Content-Type", "Accept")
         );
 
         configuration.setExposedHeaders(
@@ -106,37 +86,24 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
 
-        source.registerCorsConfiguration(
-                "/**",
-                configuration
-        );
+        source.registerCorsConfiguration("/**", configuration);
 
         return source;
     }
 
-    // ==============================
-    // SECURITY
-    // ==============================
-
     @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+            throws Exception {
 
         http
-                .cors(cors -> cors.configurationSource(
-                        corsConfigurationSource()
-                ))
-
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
-
                 .authorizeHttpRequests(auth -> auth
-
                         .requestMatchers(
                                 "/",
                                 "/api/auth/**",
@@ -144,23 +111,11 @@ public class SecurityConfig {
                                 "/api/opportunities/**",
                                 "/ws/**"
                         ).permitAll()
-
-                        .requestMatchers(
-                                "/api/student/**"
-                        ).hasRole("STUDENT")
-
-                        .requestMatchers(
-                                "/api/recruiter/**"
-                        ).hasRole("RECRUITER")
-
-                        .requestMatchers(
-                                "/api/admin/**"
-                        ).hasRole("ADMIN")
-
-                        .anyRequest()
-                        .authenticated()
+                        .requestMatchers("/api/student/**").hasRole("STUDENT")
+                        .requestMatchers("/api/recruiter/**").hasRole("RECRUITER")
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated()
                 )
-
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
